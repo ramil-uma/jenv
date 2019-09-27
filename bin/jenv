@@ -47,7 +47,6 @@ function jenv() {
 }
 
 JENV_DIR="$(dirname "$(dirname "$0")")"
-echo "Found jenv in '$JENV_DIR'"
 if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 then
   jenv "$1" "$2" "$3" "$4"
