@@ -4,38 +4,44 @@ set -e
 function jenv() {
   action="$1" && java_uri="$2" && java_dir_name="$3" && app_uri="$4"
 
+  jenv_bin_path="$(readlink "$0")"
+  if [ -z "$jenv_bin_path" ]
+  then
+    jenv_bin_path="$0"
+  fi
+  jenv_dir="$(dirname "$(dirname "$jenv_bin_path")")"
   function download_and_extract_jdk() {
-    mkdir -p "$(dirname "$JENV_DIR/$java_uri")" \
-    && wget --no-check-certificate -nc "$JAVA_MIRROR_PREFIX/$java_uri" -O "$JENV_DIR/$java_uri"
+    mkdir -p "$(dirname "$jenv_dir/$java_uri")" \
+    && wget --no-check-certificate -nc "$JAVA_MIRROR_PREFIX/$java_uri" -O "$jenv_dir/$java_uri" || echo
     if [[ "$java_uri" = "*.dmg" ]] && [ ! -d "/Volumes/$java_dir_name/" ]
     then
       # TODO: remove the hardcode
       pkg_name='jdk180221'
-      hdiutil attach "$JENV_DIR/$java_uri" \
-      && pkgutil --expand-full "/Volumes/$java_dir_name/$java_dir_name.pkg" "$JENV_DIR/$java_dir_name" \
+      hdiutil attach "$jenv_dir/$java_uri" \
+      && pkgutil --expand-full "/Volumes/$java_dir_name/$java_dir_name.pkg" "$jenv_dir/$java_dir_name" \
       && hdiutil unmount "/Volumes/$java_dir_name/" \
-      && mv "$JENV_DIR/$java_dir_name/$pkg_name.pkg/Payload/Contents/Home/"* "$JENV_DIR/$java_dir_name/"
+      && mv "$jenv_dir/$java_dir_name/$pkg_name.pkg/Payload/Contents/Home/"* "$jenv_dir/$java_dir_name/"
     else
-      tar -xf "$JENV_DIR/$java_uri" -C "$JENV_DIR"
+      tar -xf "$jenv_dir/$java_uri" -C "$jenv_dir"
     fi
-  }
+ }
 
   function download_and_extract_apache_app() {
-    mkdir -p "$(dirname "$JENV_DIR/$app_uri")" \
-    && wget -nc "$APACHE_MIRROR_PREFIX/$app_uri" -O "$JENV_DIR/$app_uri"
-    tar -xf "$JENV_DIR/$app_uri" -C "$JENV_DIR"
+    mkdir -p "$(dirname "$jenv_dir/$app_uri")" \
+    && wget -nc "$APACHE_MIRROR_PREFIX/$app_uri" -O "$jenv_dir/$app_uri" || echo
+    tar -xf "$jenv_dir/$app_uri" -C "$jenv_dir"
   }
 
   if [ "$action" = 'install' ]
   then
-    download_and_extract_jdk "$java_uri"
+    download_and_extract_jdk
     download_and_extract_apache_app
   elif [ "$action" = 'init' ]
   then
     # FYI: avoid end slashes in find and $PATH
     path_str='export PATH=$PATH'
     IFS_BAK=$IFS && IFS=$'\n'
-    files="$(find "$JENV_DIR" -type d -name "bin" -exec printf "{}$IFS" \;)"
+    files="$(find "$jenv_dir" -type d -name "bin" -exec printf "{}$IFS" \;)"
     for line in $files
     do
       path_str="$path_str:'$line'"
@@ -46,7 +52,7 @@ function jenv() {
   fi
 }
 
-JENV_DIR="$(dirname "$(dirname "$0")")"
+
 if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
 then
   jenv "$1" "$2" "$3" "$4"
