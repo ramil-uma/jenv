@@ -30,7 +30,7 @@ function jenv() {
   then
     download_and_extract_jdk "$java_uri"
     download_and_extract_apache_app
-  elif [ "$action" = 'activate' ]
+  elif [ "$action" = 'init' ]
   then
     # FYI: avoid end slashes in find and $PATH
     path_str='export PATH=$PATH'
