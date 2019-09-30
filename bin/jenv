@@ -10,6 +10,7 @@ function jenv() {
     jenv_bin_path="$0"
   fi
   jenv_dir="$(dirname "$(dirname "$jenv_bin_path")")"
+
   function download_and_extract_jdk() {
     mkdir -p "$(dirname "$jenv_dir/$java_uri")" \
     && wget --no-check-certificate -nc "$JAVA_MIRROR_PREFIX/$java_uri" -O "$jenv_dir/$java_uri" || echo
@@ -52,8 +53,4 @@ function jenv() {
   fi
 }
 
-
-if [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] && [ -n "$4" ]
-then
-  jenv "$1" "$2" "$3" "$4"
-fi
+jenv "$1" "$2" "$3" "$4"
