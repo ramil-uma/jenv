@@ -3,42 +3,46 @@ set -e
 
 function jenv() {
   action="$1" && java_uri="$2" && java_dir_name="$3" && app_uri="$4"
-
-  jenv_bin_path="$(readlink "$0")"
+  jenv_bin_path=$(readlink "$0" || printf '')
   if [ -z "$jenv_bin_path" ]
   then
     jenv_bin_path="$0"
   fi
   jenv_dir="$(dirname "$(dirname "$jenv_bin_path")")"
-
   function download_and_extract_jdk() {
     mkdir -p "$(dirname "$jenv_dir/$java_uri")" \
-    && wget --no-check-certificate -nc "$JAVA_MIRROR_PREFIX/$java_uri" -O "$jenv_dir/$java_uri" || echo
-    if [[ "$java_uri" = "*.dmg" ]] && [ ! -d "/Volumes/$java_dir_name/" ]
+    && wget --no-check-certificate -nc "$JAVA_MIRROR_PREFIX/$java_uri" -O "$jenv_dir/$java_uri" || printf ''
+    if [[ "$java_uri" = *.dmg ]]
     then
+      if [ ! -d "/Volumes/$java_dir_name/" ]
+      then
+        hdiutil attach "$jenv_dir/$java_uri"
+      fi
       # TODO: remove the hardcode
       pkg_name='jdk180221'
-      hdiutil attach "$jenv_dir/$java_uri" \
-      && pkgutil --expand-full "/Volumes/$java_dir_name/$java_dir_name.pkg" "$jenv_dir/$java_dir_name" \
-      && hdiutil unmount "/Volumes/$java_dir_name/" \
-      && mv "$jenv_dir/$java_dir_name/$pkg_name.pkg/Payload/Contents/Home/"* "$jenv_dir/$java_dir_name/"
-    else
+      pkgutil --expand-full "/Volumes/$java_dir_name/$java_dir_name.pkg" "$jenv_dir/$java_dir_name" \
+        && hdiutil unmount "/Volumes/$java_dir_name/" \
+        && mv "$jenv_dir/$java_dir_name/$pkg_name.pkg/Payload/Contents/Home/"* "$jenv_dir/$java_dir_name/"
+      #:TODO
+    fi
+    if [[ "$java_uri" = *.tar.gz ]]
+    then
       tar -xf "$jenv_dir/$java_uri" -C "$jenv_dir"
     fi
  }
 
   function download_and_extract_apache_app() {
     mkdir -p "$(dirname "$jenv_dir/$app_uri")" \
-    && wget -nc "$APACHE_MIRROR_PREFIX/$app_uri" -O "$jenv_dir/$app_uri" || echo
+    && wget -nc "$APACHE_MIRROR_PREFIX/$app_uri" -O "$jenv_dir/$app_uri" || printf ''
     tar -xf "$jenv_dir/$app_uri" -C "$jenv_dir"
   }
-
   if [ "$action" = 'install' ]
   then
     download_and_extract_jdk
     download_and_extract_apache_app
   elif [ "$action" = 'init' ]
   then
+    java_home_str="export JAVA_HOME='$jenv_dir/$java_dir_name'"
     # FYI: avoid end slashes in find and $PATH
     path_str='export PATH=$PATH'
     IFS_BAK=$IFS && IFS=$'\n'
@@ -49,7 +53,7 @@ function jenv() {
     done
     #:FYI
     IFS=$IFS_BAK && IFS_BAK=
-    printf '%s' "$path_str"
+    printf '%s\n%s\n' "$java_home_str" "$path_str"
   fi
 }
 
